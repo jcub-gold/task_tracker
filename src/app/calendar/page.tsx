@@ -22,13 +22,12 @@ export default function CalendarPage() {
   const [globalTasks, setGlobalTasks] = useState<GlobalTask[]>([]);
 
   useEffect(() => {
-    setRecords(getAllDayRecords());
-    setGlobalTasks(getGlobalTasks());
+    getAllDayRecords().then(setRecords);
+    getGlobalTasks().then(setGlobalTasks);
   }, []);
 
   const handleToggle = useCallback((dateKey: string, taskId: string) => {
-    const updated = toggleTaskForDay(dateKey, taskId);
-    setRecords((prev) => {
+    toggleTaskForDay(dateKey, taskId).then((updated) => setRecords((prev) => {
       const idx = prev.findIndex((r) => r.date === dateKey);
       if (idx >= 0) {
         const next = [...prev];
@@ -39,7 +38,7 @@ export default function CalendarPage() {
         return [...prev, updated].sort((a, b) => a.date.localeCompare(b.date));
       }
       return prev;
-    });
+    }));
   }, []);
 
   const recordMap = new Map(records.map((r) => [r.date, r]));

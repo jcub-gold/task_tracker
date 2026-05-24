@@ -1,94 +1,63 @@
 import { DayRecord, GlobalTask } from "./types";
 
-const TASKS_KEY = "tt_tasks";
-const DAY_PREFIX = "tt_day_";
-
-function dayKey(date: string): string {
-  return `${DAY_PREFIX}${date}`;
-}
-
 // ── Global tasks ──────────────────────────────────────────────────────────────
 
-export function getGlobalTasks(): GlobalTask[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(TASKS_KEY);
-    return raw ? (JSON.parse(raw) as GlobalTask[]) : [];
-  } catch {
-    return [];
-  }
+export async function getGlobalTasks(): Promise<GlobalTask[]> {
+  const res = await fetch("/api/tasks");
+  return res.json();
 }
 
-export function saveGlobalTasks(tasks: GlobalTask[]): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+async function saveGlobalTasks(tasks: GlobalTask[]): Promise<GlobalTask[]> {
+  const res = await fetch("/api/tasks", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(tasks),
+  });
+  return res.json();
 }
 
-export function addGlobalTask(title: string): GlobalTask[] {
-  const tasks = getGlobalTasks();
+export async function addGlobalTask(title: string): Promise<GlobalTask[]> {
+  const tasks = await getGlobalTasks();
   tasks.push({
     id: crypto.randomUUID(),
     title: title.trim(),
     createdAt: new Date().toISOString(),
   });
-  saveGlobalTasks(tasks);
-  return tasks;
+  return saveGlobalTasks(tasks);
 }
 
-export function deleteGlobalTask(id: string): GlobalTask[] {
-  const tasks = getGlobalTasks().filter((t) => t.id !== id);
-  saveGlobalTasks(tasks);
-  return tasks;
+export async function deleteGlobalTask(id: string): Promise<GlobalTask[]> {
+  const tasks = (await getGlobalTasks()).filter((t) => t.id !== id);
+  return saveGlobalTasks(tasks);
 }
 
 // ── Day records ───────────────────────────────────────────────────────────────
 
-export function getDayRecord(date: string): DayRecord {
-  if (typeof window === "undefined") return { date, completedTaskIds: [] };
-  try {
-    const raw = localStorage.getItem(dayKey(date));
-    if (!raw) return { date, completedTaskIds: [] };
-    const parsed = JSON.parse(raw);
-    // Migrate old format that stored { tasks: Task[] } instead of { completedTaskIds: string[] }
-    if (!Array.isArray(parsed.completedTaskIds)) {
-      return { date, completedTaskIds: [] };
-    }
-    return parsed as DayRecord;
-  } catch {
-    return { date, completedTaskIds: [] };
-  }
+export async function getDayRecord(date: string): Promise<DayRecord> {
+  const res = await fetch(`/api/days/${date}`);
+  return res.json();
 }
 
-export function saveDayRecord(record: DayRecord): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(dayKey(record.date), JSON.stringify(record));
-}
-
-export function toggleTaskForDay(date: string, taskId: string): DayRecord {
-  const record = getDayRecord(date);
+export async function toggleTaskForDay(
+  date: string,
+  taskId: string
+): Promise<DayRecord> {
+  const record = await getDayRecord(date);
   const idx = record.completedTaskIds.indexOf(taskId);
   if (idx >= 0) {
     record.completedTaskIds.splice(idx, 1);
   } else {
     record.completedTaskIds.push(taskId);
   }
-  saveDayRecord(record);
-  return record;
+  const res = await fetch(`/api/days/${date}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(record),
+  });
+  return res.json();
 }
 
-export function getAllDayRecords(): DayRecord[] {
-  if (typeof window === "undefined") return [];
-  return Object.keys(localStorage)
-    .filter((k) => k.startsWith(DAY_PREFIX))
-    .map((k) => {
-      try {
-        const parsed = JSON.parse(localStorage.getItem(k)!);
-        if (!Array.isArray(parsed.completedTaskIds)) return null;
-        return parsed as DayRecord;
-      } catch {
-        return null;
-      }
-    })
-    .filter((r): r is DayRecord => r !== null)
-    .sort((a, b) => a.date.localeCompare(b.date));
+export async function getAllDayRecords(): Promise<DayRecord[]> {
+  const res = await fetch("/api/days");
+  return res.json();
 }

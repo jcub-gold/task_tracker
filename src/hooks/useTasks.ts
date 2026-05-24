@@ -26,20 +26,22 @@ export function useTasks(date: string): UseTasksReturn {
   });
 
   useEffect(() => {
-    setGlobalTasks(getGlobalTasks());
-    setDayRecord(getDayRecord(date));
+    getGlobalTasks().then(setGlobalTasks);
+    getDayRecord(date).then(setDayRecord);
   }, [date]);
 
   const addTask = useCallback((title: string) => {
-    setGlobalTasks(addGlobalTask(title));
+    addGlobalTask(title).then(setGlobalTasks);
   }, []);
 
   const deleteTask = useCallback((id: string) => {
-    setGlobalTasks(deleteGlobalTask(id));
+    deleteGlobalTask(id).then(setGlobalTasks);
   }, []);
 
   const toggle = useCallback(
-    (taskId: string) => setDayRecord(toggleTaskForDay(date, taskId)),
+    (taskId: string) => {
+      toggleTaskForDay(date, taskId).then(setDayRecord);
+    },
     [date]
   );
 

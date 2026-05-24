@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { ChartDay, GlobalTask, StatsSnapshot } from "@/lib/types";
 import { getAllDayRecords, getGlobalTasks } from "@/lib/storage";
-import { computeStats, computePerTaskStats, getWeeklyChartData, PerTaskStats } from "@/lib/stats";
+import {
+  computeStats,
+  computePerTaskStats,
+  getWeeklyChartData,
+  PerTaskStats,
+} from "@/lib/stats";
 
 const emptyPeriod = {
   totalDays: 0,
@@ -39,13 +44,15 @@ export function useStats(): UseStatsReturn {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const tasks = getGlobalTasks();
-    const records = getAllDayRecords();
-    setGlobalTasks(tasks);
-    setStats(computeStats(records, tasks.length));
-    setPerTaskStats(computePerTaskStats(records, tasks));
-    setChartData(getWeeklyChartData(records, tasks.length));
-    setLoading(false);
+    Promise.all([getGlobalTasks(), getAllDayRecords()]).then(
+      ([tasks, records]) => {
+        setGlobalTasks(tasks);
+        setStats(computeStats(records, tasks.length));
+        setPerTaskStats(computePerTaskStats(records, tasks));
+        setChartData(getWeeklyChartData(records, tasks.length));
+        setLoading(false);
+      }
+    );
   }, []);
 
   return { stats, perTaskStats, globalTasks, chartData, loading };
